@@ -352,6 +352,9 @@
         const url = `http://166.104.137.89:1050/stream/?input_str="${userInput}"&temperature=${temperature}`;
         const ResponseText = '';
         const mockResponseText = `Mock response for: "${userInput}" with temperature ${temperature}.`;
+        
+        // Add a message from LLM that is loading
+        addMessage('llm', '응답 생성 중...', true);
 
         // 실제 서버로부터 응답 가져오기 (fetch)
         fetch(url)
@@ -359,28 +362,33 @@
             .then(data => {
                 // 서버에서 온 응답을 mockResponseText에 저장
                 ResponseText = data;
+                // Remove the loading indicator and update the message
+                const messages = document.getElementsByClassName('message llm');
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage) {
+                    lastMessage.querySelector('.loadingCircle').remove();
+                    lastMessage.querySelector('.messageContent').textContent = ResponseText;
+                }
+                
+                // Re-enable the input area
+                userInputArea.disabled = false;
+                userInputArea.focus();
             })
             .catch(err => {
                 console.error(err);
                 ResponseText = '[Error] 응답을 불러오지 못했습니다.';
+                // Remove the loading indicator and update the message
+                const messages = document.getElementsByClassName('message llm');
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage) {
+                    lastMessage.querySelector('.loadingCircle').remove();
+                    lastMessage.querySelector('.messageContent').textContent = ResponseText;
+                }
+                
+                // Re-enable the input area
+                userInputArea.disabled = false;
+                userInputArea.focus();
             });
-
-        // Add a message from LLM that is loading
-        addMessage('llm', '응답 생성 중...', true);
-
-        setTimeout(() => {
-            // Remove the loading indicator and update the message
-            const messages = document.getElementsByClassName('message llm');
-            const lastMessage = messages[messages.length - 1];
-            if (lastMessage) {
-                lastMessage.querySelector('.loadingCircle').remove();
-                lastMessage.querySelector('.messageContent').textContent = ResponseText;
-            }
-            
-            // Re-enable the input area
-            userInputArea.disabled = false;
-            userInputArea.focus();
-        }); // Simulate response time with 3 seconds delay
     }
 
     function setExample(exampleText) {
