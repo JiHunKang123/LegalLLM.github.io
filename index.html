@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <title>LLM Demo</title>
   <style>
     body {
@@ -61,7 +60,7 @@
       responseArea.innerText = "Loading...";
 
       // API URL 생성
-      const url = `http://166.104.137.89:1050/stream/?input_str=${encodeURIComponent(userInput)}&temperature=${encodeURIComponent(temperature)}`;
+      const url = https://dc47-166-104-137-89.ngrok-free.app/stream/?input_str=${encodeURIComponent(userInput)}&temperature=${encodeURIComponent(temperature)}`;
 
       // 서버에 요청 전송
       fetch(url)
