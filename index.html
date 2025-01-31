@@ -1,409 +1,86 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASML&KnC Legal Demo</title>
-    <link rel="shortcut icon" type="image/x-icon" href="logo.ico">
-    <link rel="apple-touch-icon" sizes="64x64" href="favicon_logo.png">
-    <link rel="stylesheet" href="https://webfontworld.github.io/NanumSquare/NanumSquare.css">
-    
+  <meta charset="UTF-8">
+  <title>LLM Demo</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    .input-row {
+      margin-bottom: 10px;
+    }
+    .label {
+      display: inline-block;
+      width: 100px;
+      font-weight: bold;
+    }
+    #responseArea {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      white-space: pre-wrap; /* 줄바꿈 및 공백 유지 */
+    }
+  </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="demo_description">
-            <img src="demo_logo.png" alt="LLM Logo" style="width: 70%; margin: auto; display: block;">
-            <h2 style="font-size: 16pt; font-weight: 200; color: #000000; text-align: center; margin-block-end: auto">ASML & KnC FDS Demo</h2>
-        </div>
-        <div class="temp_sel">
-            <label for="temperature">Temperature: <span id="temperatureValue">0.7</span></label>
-            <p style="font-size: 10pt; font-weight: 200; margin-top: 5px; color: #666666;">LLM 출력의 다양성 제어 (0.0 - 2.0)</br>(temp->0: 일관된 응답 생성)</br>(temp->2: 다양한 응답 생성)</p>
-            <input type="range" id="temperature" name="temperature" min="0.0" max="2.0" step="0.1" value="0.0" oninput="updateSliderValue('temperature', 'temperatureValue')">
-        </div>
-    </div>
-    
-    <div class="main">
-        <div class="initial-view">
-            <img src="demo_logo.png" alt="LLM Logo" style="width: 500px;">
-        </div>
-        <div class="chatContainer" id="chatContainer" style="display: none;">
-        </div>
-        <div class="input-view">
-            <textarea id="initialUserInput" rows={1} placeholder="궁금한 것을 물어보세요." oninput="resizeTextarea(this)" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { startChat(); event.preventDefault(); addMessage(); }"></textarea>
-        </div>
-    </div>
+  <h1>Simple LLM Demo</h1>
+
+  <!-- 입력 영역 -->
+  <div class="input-row">
+    <label for="userInput" class="label">Question:</label>
+    <textarea id="userInput" rows="3" cols="50"></textarea>
+  </div>
+
+  <div class="input-row">
+    <label for="temperature" class="label">Temperature:</label>
+    <input id="temperature" type="number" step="0.1" value="0.2" />
+  </div>
+
+  <button onclick="fetchLLMResponse()">Send</button>
+
+  <!-- 응답 표시 영역 -->
+  <div id="responseArea"></div>
+
+  <script>
+    function fetchLLMResponse() {
+      // 입력값 가져오기
+      const userInput = document.getElementById('userInput').value.trim();
+      const temperature = document.getElementById('temperature').value;
+
+      // 간단한 유효성 체크
+      if (!userInput) {
+        alert("질문을 입력해 주세요.");
+        return;
+      }
+
+      // 응답 표시 영역 초기화
+      const responseArea = document.getElementById('responseArea');
+      responseArea.innerText = "Loading...";
+
+      // API URL 생성
+      const url = `http://166.104.137.89:1050/stream/?input_str=${encodeURIComponent(userInput)}&temperature=${encodeURIComponent(temperature)}`;
+
+      // 서버에 요청 전송
+      fetch(url)
+        .then(response => {
+          // 서버가 텍스트로 응답한다고 가정
+          if (!response.ok) {
+            throw new Error("네트워크 응답이 올바르지 않습니다. 상태코드: " + response.status);
+          }
+          return response.text();
+        })
+        .then(data => {
+          // 받아온 텍스트를 표시
+          responseArea.innerText = data;
+        })
+        .catch(error => {
+          // 에러 시 표시
+          responseArea.innerText = "[ERROR] " + error.message;
+          console.error(error);
+        });
+    }
+  </script>
 </body>
 </html>
-
-
-<style>
-    body {
-        font-family: 'NanumSquare', sans-serif;
-        background-color: #ffffff;
-        color: #000000;
-        margin: 0;
-        display: flex;
-        height: 100vh;
-        overflow: hidden;
-    }
-    .sidebar {
-        width: 15%;
-        min-width: 250px;
-        background-color: #f7f7f5;
-        padding: 20px;
-        border-right: solid 1px #e5e5e1;
-        overflow-y: auto;
-    }
-    .demo_description {
-        height: 14%;
-        border-bottom: solid 1px #e5e5e1;
-    }
-    .task_sel {
-        min-height: 100px;
-        border-bottom: solid 1px #e5e5e1;
-    }
-    .task_sel label {
-        display: inline-block;
-        margin-top: 15px;
-        font-size: 12pt;
-        font-weight: 100;
-        color: #000000;
-    }
-    .task_sel select {
-        display: inline-block;
-        margin-top: 15px;
-        float: right;
-        width: 150px;
-        font-size: 10pt;
-        font-weight: 200;
-        border-radius: 5px;
-        background-color: #ffffff;
-    }
-    .agent_sel {
-        min-height: 100px;
-        border-bottom: solid 1px #e5e5e1;
-    }
-    .agent_sel label {
-        display: inline-block;
-        margin-top: 15px;
-        font-size: 12pt;
-        font-weight: 100;
-        color: #000000;
-    }
-    .agent_sel select {
-        display: inline-block;
-        margin-top: 15px;
-        float: right;
-        width: 150px;
-        font-size: 10pt;
-        font-weight: 200;
-        border-radius: 5px;
-        background-color: #ffffff;
-    }
-    .temp_sel {
-        min-height: 120px;
-        border-bottom: solid 1px #e5e5e1;
-    }
-    .temp_sel label {
-        display: inline-block;
-        margin-top: 15px;
-        font-size: 12pt;
-        font-weight: 100;
-        color: #000000;
-    }
-    .temp_sel input[type="range"] {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        border-radius: 5px;
-        background-color: #ffffff;
-    }
-    .trial_sel {
-        min-height: 100px;
-        border-bottom: solid 1px #e5e5e1;
-    }
-    .trial_sel label {
-        display: inline-block;
-        margin-top: 15px;
-        font-size: 12pt;
-        font-weight: 100;
-        color: #000000;
-    }
-    .trial_sel input[type="range"] {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        border-radius: 5px;
-        background-color: #ffffff;
-    }
-    .loop_sel {
-        min-height: 100px;
-        border-bottom: solid 1px #e5e5e1;
-    }
-    .loop_sel label {
-        display: inline-block;
-        margin-top: 15px;
-        font-size: 12pt;
-        font-weight: 100;
-        color: #000000;
-    }
-    .loop_sel input[type="range"] {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        border-radius: 5px;
-        background-color: #ffffff;
-    }   
-    
-    .main {
-        flex-grow: 1;
-        flex-direction: column;
-        display: flex;
-        align-items: center;
-        padding-top: 40px;
-        padding-bottom: 40px;
-    }
-    .initial-view {
-        width: 100%;
-        height: 85%;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .input-view {
-        margin-top: auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .example-buttons {
-        margin-bottom: 10px;
-    }
-    .example-buttons button {
-        margin-right: 25px;
-        margin-left: 25px;
-        padding: 5px 10px;
-        width: 200px;
-        height: 30px;
-        border: none;
-        background-color: #007bff;
-        color: #fff;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    textarea {
-        flex: 1;
-        width: 50vw;
-        padding: 20px;
-        border-radius: 20px;
-        border: 1px solid #ffffff;
-        resize: none;
-        overflow: auto;
-        min-height: 100px;
-        max-height: 200px;
-        background-color: #f0f0f0;
-        outline: none;
-        font-size: 16px;
-    }
-
-    .chatContainer {
-        width: 100%;
-        height: 75%;
-        bottom: 0;
-        display: flex;
-        overflow-y: auto;
-        background-color: #ffffff;
-        border-radius: 10px;
-    }
-    .inputs-view {
-        flex-grow: 1;
-        margin-top: auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .message {
-        margin: 10px 0;
-        display: flex;
-        align-items: center;
-    }
-    .message.user .messageContent {
-        background-color: #d0eaf7;
-        color: #000;
-        padding: 10px;
-        border-radius: 10px;
-        max-width: 70%;
-        margin-left: auto;
-        margin-right: 15%;
-    }
-    .message.llm .messageContent {
-        background-color: #ffffff;
-        color: #000;
-        padding: 10px;
-        border-radius: 10px;
-        max-width: 70%;
-        margin-left: 15%;
-    }
-    .loadingCircle {
-        width: 15px;
-        height: 15px;
-        border: 2px solid #ccc;
-        border-top: 2px solid #000;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-left: 10px;
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-</style>
-
-<script>
-    function updateTaskDescription() {
-        const task = document.getElementById('task').value;
-        const taskDescription = document.getElementById('taskDescription');
-        
-        switch (task) {
-            case 'BAF':
-                taskDescription.textContent = "BAF(Bank Account Fraud detection) task는 개인의 연 소득, 연령대, 주소 유효성, 고용 상태 등 30가지 특징을 기반으로 대상 계좌의 사기 여부를 탐지하는 task입니다.";
-                break;
-            case 'CCTFD':
-                taskDescription.textContent = "CCTFD(Credit Card Transaction Fraud Detection) task는 다양한 상인들과 이루어진 신용카드 거래 기록을 기반으로 사기 거래를 탐지하는 task입니다.";
-                break;
-            default:
-                taskDescription.textContent = "수행 가능한 Task로는 은행 계좌 사기 탐지(BAF, Bank Account Fraud detection)와 신용카드 거래 사기 탐지(CCTFD, Credit Card Transaction Fraud Detection)가 있습니다.";
-        }
-    }
-
-    function updateAgentDescription() {
-        const agent = document.getElementById('agent').value;
-        const agentDescription = document.getElementById('agentDescription');
-
-        switch (agent) {
-            case 'Ollama':
-                agentDescription.textContent = "Ollama는 로컬 환경에서 LLM을 손쉽게 실행할 수 있도록 지원하는 오픈소스 플랫폼입니다.\n여기서는 Meta의 Llama 3.1 8B 모델의 LoRA 학습 버전이 적용됩니다.";
-                break;
-            case 'vLLM':
-                agentDescription.textContent = "vLLM은 LLM의 추론과 서비스를 효율적으로 수행하기 위한 오픈소스 라이브러리입니다.\n여기서는 Meta의 Llama 3.1 8B 모델의 LoRA 학습 버전이 적용됩니다.";
-                break;
-            case 'OpenAI':
-                agentDescription.textContent = "OpenAI의 GPT-4 mini 모델이 적용됩니다.";
-                break;
-            default:
-                agentDescription.textContent = "지원되는 Toolkit으로는 Ollama, vLLM, OpenAI가 있습니다.";
-        }
-    }
-
-    function updateSliderValue(sliderId, valueId) {
-        const slider = document.getElementById(sliderId);
-        const valueDisplay = document.getElementById(valueId);
-        valueDisplay.textContent = slider.value;
-    }
-
-    function resizeTextarea(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = textarea.scrollHeight + 'px';
-    }
-    
-    function startChat() {
-        const userInput = document.getElementById('initialUserInput').value;
-        if (!userInput.trim()) return;
-                
-        // Hide initial-view and show chatContainer
-        document.querySelector('.initial-view').style.display = 'none';
-        document.getElementById('chatContainer').style.display = 'inline';
-        
-        addMessage('user', userInput);
-        document.getElementById('initialUserInput').value = '';
-        LLMResponse(userInput);
-    }
-
-    function addMessage(sender, text, isLoading = false) {
-        const chatContainer = document.getElementById('chatContainer');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${sender}`;
-        
-        const messageContent = document.createElement('div');
-        messageContent.className = 'messageContent';
-        messageContent.textContent = text;
-        messageDiv.appendChild(messageContent);
-
-        if (isLoading) {
-            const loadingCircle = document.createElement('div');
-            loadingCircle.className = 'loadingCircle';
-            messageDiv.appendChild(loadingCircle);
-        }
-        
-        chatContainer.appendChild(messageDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-
-    function LLMResponse(userInput) {
-        // Prevent further input until response is complete
-        const userInputArea = document.getElementById('initialUserInput');
-        userInputArea.disabled = true;
-
-        // Get parameters from sidebar
-        const temperature = document.getElementById('temperature').value;
-
-        const url = `http://166.104.137.89:1050/stream/?input_str="${userInput}"&temperature=${temperature}`;
-        const ResponseText = '';
-        const mockResponseText = `Mock response for: "${userInput}" with temperature ${temperature}.`;
-        
-        // Add a message from LLM that is loading
-        addMessage('llm', '응답 생성 중...', true);
-
-        // 실제 서버로부터 응답 가져오기 (fetch)
-        fetch(url)
-            .then(response => response.text()) // 혹은 JSON이라면 response.json()
-            .then(data => {
-                // 서버에서 온 응답을 mockResponseText에 저장
-                ResponseText = data;
-                // Remove the loading indicator and update the message
-                const messages = document.getElementsByClassName('message llm');
-                const lastMessage = messages[messages.length - 1];
-                if (lastMessage) {
-                    lastMessage.querySelector('.loadingCircle').remove();
-                    lastMessage.querySelector('.messageContent').textContent = ResponseText;
-                }
-                
-                // Re-enable the input area
-                userInputArea.disabled = false;
-                userInputArea.focus();
-            })
-            .catch(err => {
-                console.error(err);
-                ResponseText = '[Error] 응답을 불러오지 못했습니다.';
-                // Remove the loading indicator and update the message
-                const messages = document.getElementsByClassName('message llm');
-                const lastMessage = messages[messages.length - 1];
-                if (lastMessage) {
-                    lastMessage.querySelector('.loadingCircle').remove();
-                    lastMessage.querySelector('.messageContent').textContent = ResponseText;
-                }
-                
-                // Re-enable the input area
-                userInputArea.disabled = false;
-                userInputArea.focus();
-            });
-        // Remove the loading indicator and update the message
-        const messages = document.getElementsByClassName('message llm');
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage) {
-            lastMessage.querySelector('.loadingCircle').remove();
-            lastMessage.querySelector('.messageContent').textContent = ResponseText;
-        }
-        
-        // Re-enable the input area
-        userInputArea.disabled = false;
-        userInputArea.focus();
-    }
-
-    function setExample(exampleText) {
-        document.getElementById('initialUserInput').value = exampleText;
-        resizeTextarea(document.getElementById('initialUserInput'));
-    }
-</script>
