@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASML&KnC FDS Demo</title>
+    <title>ASML&KnC Legal Demo</title>
     <link rel="shortcut icon" type="image/x-icon" href="logo.ico">
     <link rel="apple-touch-icon" sizes="64x64" href="favicon_logo.png">
     <link rel="stylesheet" href="https://webfontworld.github.io/NanumSquare/NanumSquare.css">
@@ -16,39 +16,10 @@
             <img src="demo_logo.png" alt="LLM Logo" style="width: 70%; margin: auto; display: block;">
             <h2 style="font-size: 16pt; font-weight: 200; color: #000000; text-align: center; margin-block-end: auto">ASML & KnC FDS Demo</h2>
         </div>
-        <div class="task_sel">
-            <label for="task">Task: </label>
-            <select id="task" name="task" onchange="updateTaskDescription()">
-                <option value="">Task를 선택하세요.</option>
-                <option value="BAF">BAF</option>
-                <option value="CCTFD">CCTFD</option>
-            </select>
-            <p id="taskDescription" style="margin-top: 5px; color: #666666; font-size: 10pt; font-weight: 200; white-space: pre-wrap;">수행 가능한 Task로는 은행 계좌 사기 탐지(BAF, Bank Account Fraud detection)와 신용카드 거래 사기 탐지(CCTFD, Credit Card Transaction Fraud Detection)가 있습니다.</p>
-        </div>
-        <div class="agent_sel">
-            <label for="agent">Toolkit: </label>
-            <select id="agent" name="agent" onchange="updateAgentDescription()">
-                <option value="">Toolkit을 선택하세요.</option>
-                <option value="Ollama">Ollama</option>
-                <option value="vLLM">vLLM</option>
-                <option value="OpenAI">OpenAI</option>
-            </select>
-            <p id="agentDescription" style="margin-top: 5px; color: #666666; font-size: 10pt; font-weight: 200; white-space: pre-wrap;">지원되는 Toolkit으로는 Ollama, vLLM, OpenAI가 있습니다.</p>
-        </div>
         <div class="temp_sel">
             <label for="temperature">Temperature: <span id="temperatureValue">0.7</span></label>
             <p style="font-size: 10pt; font-weight: 200; margin-top: 5px; color: #666666;">LLM 출력의 다양성 제어 (0.0 - 2.0)</br>(temp->0: 일관된 응답 생성)</br>(temp->2: 다양한 응답 생성)</p>
             <input type="range" id="temperature" name="temperature" min="0.0" max="2.0" step="0.1" value="0.0" oninput="updateSliderValue('temperature', 'temperatureValue')">
-        </div>
-        <div class="trial_sel">
-            <label for="trial">Trial: <span id="trialValue">5</span></label>
-            <p style="font-size: 10pt; font-weight: 200; margin-top: 5px; color: #666666;">최대 Reflection 반영 횟수 (0 - 5)</p>
-            <input type="range" id="trial" name="trial" min="0" max="5" step="1" value="5" oninput="updateSliderValue('trial', 'trialValue')">
-        </div>
-        <div class="loop_sel">
-            <label for="loop">Loop: <span id="loopValue">6</span></label>
-            <p style="font-size: 10pt; font-weight: 200; margin-top: 5px; color: #666666;">최대 내부적 추론 횟수 (0 - 5)</p>
-            <input type="range" id="loop" name="loop" min="0" max="6" step="1" value="6" oninput="updateSliderValue('loop', 'loopValue')">
         </div>
     </div>
     
@@ -58,12 +29,8 @@
         </div>
         <div class="chatContainer" id="chatContainer" style="display: none;">
         </div>
-        <div class="example-buttons">
-            <button onclick="setExample('정상 예제')" font-size: 12pt;>예제: 정상</button>
-            <button onclick="setExample('사기 예제')" font-size: 12pt;>예제: 사기</button>
-        </div>
         <div class="input-view">
-            <textarea id="initialUserInput" rows={1} placeholder="로그를 입력하세요." oninput="resizeTextarea(this)" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { startChat(); event.preventDefault(); addMessage(); }"></textarea>
+            <textarea id="initialUserInput" rows={1} placeholder="궁금한 것을 물어보세요." oninput="resizeTextarea(this)" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { startChat(); event.preventDefault(); addMessage(); }"></textarea>
         </div>
     </div>
 </body>
@@ -351,7 +318,7 @@
         
         addMessage('user', userInput);
         document.getElementById('initialUserInput').value = '';
-        mockLLMResponse(userInput);
+        LLMResponse(userInput);
     }
 
     function addMessage(sender, text, isLoading = false) {
@@ -374,18 +341,28 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    function mockLLMResponse(userInput) {
+    function LLMResponse(userInput) {
         // Prevent further input until response is complete
         const userInputArea = document.getElementById('initialUserInput');
         userInputArea.disabled = true;
 
         // Get parameters from sidebar
         const temperature = document.getElementById('temperature').value;
-        const trial = document.getElementById('trial').value;
-        const loop = document.getElementById('loop').value;
-        const agent = document.getElementById('agent').value;
 
-        const mockResponseText = `Mock response for: "${userInput}" with temperature ${temperature}, trial ${trial}, loop ${loop}, using agent ${agent}.`;
+        const url = `http://166.104.137.89/stream/?input_str=${userInput}&temperature=${temperature}`;
+        const ResponseText = '';
+
+        // 실제 서버로부터 응답 가져오기 (fetch)
+        fetch(url)
+          .then(response => response.text()) // 혹은 JSON이라면 response.json()
+          .then(data => {
+            // 서버에서 온 응답을 mockResponseText에 저장
+            ResponseText = data;
+          })
+          .catch(err => {
+            console.error(err);
+            ResponseText = '[Error] 응답을 불러오지 못했습니다.';
+          });
 
         // Add a message from LLM that is loading
         addMessage('llm', '응답 생성 중...', true);
@@ -396,7 +373,7 @@
             const lastMessage = messages[messages.length - 1];
             if (lastMessage) {
                 lastMessage.querySelector('.loadingCircle').remove();
-                lastMessage.querySelector('.messageContent').textContent = mockResponseText;
+                lastMessage.querySelector('.messageContent').textContent = ResponseText;
             }
             
             // Re-enable the input area
