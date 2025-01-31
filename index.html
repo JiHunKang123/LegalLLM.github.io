@@ -63,7 +63,7 @@
       const url = `https://dc47-166-104-137-89.ngrok-free.app/stream/?input_str=${encodeURIComponent(userInput)}&temperature=${encodeURIComponent(temperature)}`;
 
       // 서버에 요청 전송
-      fetch("https://dc47-166-104-137-89.ngrok-free.app/stream/?input_str=%EC%95%88%EB%85%95%ED%95%98%EC%84%B8%EC%9A%94.&temperature=0.2")
+      fetch(url, {method: "get", headers: new Headers({"ngrok-skip-browser-warning": "69420"})})
         .then(response => {
           // 서버가 텍스트로 응답한다고 가정
           if (!response.ok) {
