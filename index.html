@@ -351,18 +351,19 @@
 
         const url = `http://166.104.137.89:1050/stream/?input_str=${userInput}&temperature=${temperature}`;
         const ResponseText = '';
+        const mockResponseText = `Mock response for: "${userInput}" with temperature ${temperature}.`;
 
         // 실제 서버로부터 응답 가져오기 (fetch)
         fetch(url)
-          .then(response => response.text()) // 혹은 JSON이라면 response.json()
-          .then(data => {
-            // 서버에서 온 응답을 mockResponseText에 저장
-            ResponseText = data;
-          })
-          .catch(err => {
-            console.error(err);
-            ResponseText = '[Error] 응답을 불러오지 못했습니다.';
-          });
+            .then(response => response.text()) // 혹은 JSON이라면 response.json()
+            .then(data => {
+                // 서버에서 온 응답을 mockResponseText에 저장
+                ResponseText = data;
+            })
+            .catch(err => {
+                console.error(err);
+                ResponseText = '[Error] 응답을 불러오지 못했습니다.';
+            });
 
         // Add a message from LLM that is loading
         addMessage('llm', '응답 생성 중...', true);
@@ -373,7 +374,7 @@
             const lastMessage = messages[messages.length - 1];
             if (lastMessage) {
                 lastMessage.querySelector('.loadingCircle').remove();
-                lastMessage.querySelector('.messageContent').textContent = ResponseText;
+                lastMessage.querySelector('.messageContent').textContent = mockResponseText;
             }
             
             // Re-enable the input area
