@@ -349,7 +349,7 @@
         // Get parameters from sidebar
         const temperature = document.getElementById('temperature').value;
 
-        const url = `http://166.104.137.89:1050/stream/?input_str="${userInput}"&temperature=${temperature}`;
+        const url = `https://dc47-166-104-137-89.ngrok-free.app/stream/?input_str="${userInput}"&temperature=${temperature}`;
         const ResponseText = '';
         const mockResponseText = `Mock response for: "${userInput}" with temperature ${temperature}.`;
         
@@ -357,7 +357,7 @@
         addMessage('llm', '응답 생성 중...', true);
 
         // 실제 서버로부터 응답 가져오기 (fetch)
-        fetch(url)
+        fetch(url, {method: "get", headers: new Headers({"ngrok-skip-browser-warning": "69420"})})
             .then(response => response.text()) // 혹은 JSON이라면 response.json()
             .then(data => {
                 // 서버에서 온 응답을 mockResponseText에 저장
