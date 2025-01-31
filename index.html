@@ -389,17 +389,6 @@
                 userInputArea.disabled = false;
                 userInputArea.focus();
             });
-        // Remove the loading indicator and update the message
-        const messages = document.getElementsByClassName('message llm');
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage) {
-            lastMessage.querySelector('.loadingCircle').remove();
-            lastMessage.querySelector('.messageContent').textContent = ResponseText;
-        }
-        
-        // Re-enable the input area
-        userInputArea.disabled = false;
-        userInputArea.focus();
     }
 
     function setExample(exampleText) {
