@@ -8,7 +8,13 @@
   <link rel="apple-touch-icon" sizes="64x64" href="favicon_logo.png">
   <!-- 폰트 불러오기 (예: NanumSquare) -->
   <link rel="stylesheet" href="https://webfontworld.github.io/NanumSquare/NanumSquare.css">
-  
+
+  <!-- (1) GitHub Markdown CSS 로드 -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css"
+  />
+
   <style>
     /* 기본 스타일 */
     body {
@@ -34,7 +40,7 @@
       height: 14%;
       border-bottom: 1px solid #e5e5e1;
     }
-    
+
     /* Temperature 섹션 */
     .temp_sel {
       min-height: 120px;
@@ -54,7 +60,7 @@
       border-radius: 5px;
       background-color: #ffffff;
     }
-    
+
     /* 메인 영역 */
     .main {
       flex-grow: 1;
@@ -85,7 +91,7 @@
       align-items: center;
       justify-content: center;
     }
-    
+
     /* 입력창 스타일 */
     textarea {
       flex: 1;
@@ -117,6 +123,7 @@
       margin-left: auto;
       margin-right: 15%;
     }
+    /* (2) llm 메시지에 'markdown-body' 클래스 추가 */
     .message.llm .messageContent {
       background-color: #ffffff;
       color: #000;
@@ -124,9 +131,12 @@
       border-radius: 10px;
       max-width: 70%;
       margin-left: 15%;
-      white-space: pre-wrap;
+      /* markdown-body로 표시할 때, pre-wrap 등은 보통 CSS로 처리됨 */
     }
-    
+    .message.llm .markdown-body {
+      /* GitHub Markdown CSS로 h1~h6, p, code, etc. 스타일링 */
+    }
+
     /* 로딩 아이콘 */
     .loadingCircle {
       width: 15px;
@@ -196,6 +206,9 @@
     </div>
   </div>
 
+  <!-- (3) Marked 라이브러리 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
   <script>
     /* ---------------------------------------------------------
        슬라이더 값을 화면에 반영
@@ -238,8 +251,17 @@
       const messageDiv = document.createElement('div');
       messageDiv.className = `message ${sender}`;
 
+      // 메시지 내용을 감쌀 div
       const messageContent = document.createElement('div');
       messageContent.className = 'messageContent';
+
+      // llm 메시지에는 GitHub Markdown 스타일을 적용하기 위해
+      // markdown-body 클래스를 추가해 둠.
+      if (sender === 'llm') {
+        messageContent.classList.add('markdown-body');
+      }
+
+      // 기본은 textContent만 일단 삽입 (로딩시 "응답 생성 중...")
       messageContent.textContent = text;
       messageDiv.appendChild(messageContent);
 
@@ -254,7 +276,7 @@
     }
 
     /* ---------------------------------------------------------
-       LLM에 요청 보내고 응답 표시
+       LLM에 요청 보내고, "마크다운" 응답을 HTML로 변환하여 표시
        --------------------------------------------------------- */
     function LLMResponse(userInput) {
       // 입력창 비활성화
@@ -275,34 +297,44 @@
         method: "GET",
         headers: new Headers({ "ngrok-skip-browser-warning": "69420" })
       })
-        .then(response => response.text())
-        .then(data => {
-          // 로딩 표시 제거, 실제 응답으로 대체
-          const messages = document.getElementsByClassName('message llm');
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage) {
-            const loadingCircle = lastMessage.querySelector('.loadingCircle');
-            if (loadingCircle) loadingCircle.remove();
-            lastMessage.querySelector('.messageContent').textContent = data;
-          }
-          // 입력창 재활성화
-          userInputArea.disabled = false;
-          userInputArea.focus();
-        })
-        .catch(err => {
-          console.error(err);
-          const errorMsg = '[Error] 응답을 불러오지 못했습니다.';
-          const messages = document.getElementsByClassName('message llm');
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage) {
-            const loadingCircle = lastMessage.querySelector('.loadingCircle');
-            if (loadingCircle) loadingCircle.remove();
-            lastMessage.querySelector('.messageContent').textContent = errorMsg;
-          }
-          // 입력창 재활성화
-          userInputArea.disabled = false;
-          userInputArea.focus();
-        });
+      .then(response => response.text())
+      .then(data => {
+        // 이미 llm 메시지가 가장 마지막에 추가되어 있음
+        const messages = document.getElementsByClassName('message llm');
+        const lastMessage = messages[messages.length - 1];
+
+        if (!lastMessage) return;
+
+        // 로딩 표시 제거
+        const loadingCircle = lastMessage.querySelector('.loadingCircle');
+        if (loadingCircle) loadingCircle.remove();
+
+        // (4) 마크다운 → HTML 변환 (Marked 사용)
+        //    XSS 대비를 위해 data 검증/escape를 고려해야 하지만, 예시는 단순화
+        const html = marked.parse(data);
+
+        // (5) 마크다운 HTML을 .innerHTML로 주입
+        const messageContent = lastMessage.querySelector('.messageContent');
+        messageContent.innerHTML = html;
+
+        // 입력창 다시 활성화
+        userInputArea.disabled = false;
+        userInputArea.focus();
+      })
+      .catch(err => {
+        console.error(err);
+        const errorMsg = '[Error] 응답을 불러오지 못했습니다.';
+        const messages = document.getElementsByClassName('message llm');
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage) {
+          const loadingCircle = lastMessage.querySelector('.loadingCircle');
+          if (loadingCircle) loadingCircle.remove();
+          lastMessage.querySelector('.messageContent').textContent = errorMsg;
+        }
+        // 입력창 재활성화
+        userInputArea.disabled = false;
+        userInputArea.focus();
+      });
     }
   </script>
 </body>
