@@ -349,7 +349,7 @@
         // Get parameters from sidebar
         const temperature = document.getElementById('temperature').value;
 
-        const url = `http://166.104.137.89:1050/stream/?input_str=${userInput}&temperature=${temperature}`;
+        const url = `http://166.104.137.89:1050/stream/?input_str="${userInput}"&temperature=${temperature}`;
         const ResponseText = '';
         const mockResponseText = `Mock response for: "${userInput}" with temperature ${temperature}.`;
 
@@ -374,7 +374,7 @@
             const lastMessage = messages[messages.length - 1];
             if (lastMessage) {
                 lastMessage.querySelector('.loadingCircle').remove();
-                lastMessage.querySelector('.messageContent').textContent = mockResponseText;
+                lastMessage.querySelector('.messageContent').textContent = ResponseText;
             }
             
             // Re-enable the input area
