@@ -1,0 +1,412 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASML&KnC FDS Demo</title>
+    <link rel="shortcut icon" type="image/x-icon" href="logo.ico">
+    <link rel="apple-touch-icon" sizes="64x64" href="favicon_logo.png">
+    <link rel="stylesheet" href="https://webfontworld.github.io/NanumSquare/NanumSquare.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="demo_description">
+            <img src="demo_logo.png" alt="LLM Logo" style="width: 70%; margin: auto; display: block;">
+            <h2 style="font-size: 16pt; font-weight: 200; color: #000000; text-align: center; margin-block-end: auto">ASML & KnC FDS Demo</h2>
+        </div>
+        <div class="task_sel">
+            <label for="task">Task: </label>
+            <select id="task" name="task" onchange="updateTaskDescription()">
+                <option value="">Task를 선택하세요.</option>
+                <option value="BAF">BAF</option>
+                <option value="CCTFD">CCTFD</option>
+            </select>
+            <p id="taskDescription" style="margin-top: 5px; color: #666666; font-size: 10pt; font-weight: 200; white-space: pre-wrap;">수행 가능한 Task로는 은행 계좌 사기 탐지(BAF, Bank Account Fraud detection)와 신용카드 거래 사기 탐지(CCTFD, Credit Card Transaction Fraud Detection)가 있습니다.</p>
+        </div>
+        <div class="agent_sel">
+            <label for="agent">Toolkit: </label>
+            <select id="agent" name="agent" onchange="updateAgentDescription()">
+                <option value="">Toolkit을 선택하세요.</option>
+                <option value="Ollama">Ollama</option>
+                <option value="vLLM">vLLM</option>
+                <option value="OpenAI">OpenAI</option>
+            </select>
+            <p id="agentDescription" style="margin-top: 5px; color: #666666; font-size: 10pt; font-weight: 200; white-space: pre-wrap;">지원되는 Toolkit으로는 Ollama, vLLM, OpenAI가 있습니다.</p>
+        </div>
+        <div class="temp_sel">
+            <label for="temperature">Temperature: <span id="temperatureValue">0.7</span></label>
+            <p style="font-size: 10pt; font-weight: 200; margin-top: 5px; color: #666666;">LLM 출력의 다양성 제어 (0.0 - 2.0)</br>(temp->0: 일관된 응답 생성)</br>(temp->2: 다양한 응답 생성)</p>
+            <input type="range" id="temperature" name="temperature" min="0.0" max="2.0" step="0.1" value="0.0" oninput="updateSliderValue('temperature', 'temperatureValue')">
+        </div>
+        <div class="trial_sel">
+            <label for="trial">Trial: <span id="trialValue">5</span></label>
+            <p style="font-size: 10pt; font-weight: 200; margin-top: 5px; color: #666666;">최대 Reflection 반영 횟수 (0 - 5)</p>
+            <input type="range" id="trial" name="trial" min="0" max="5" step="1" value="5" oninput="updateSliderValue('trial', 'trialValue')">
+        </div>
+        <div class="loop_sel">
+            <label for="loop">Loop: <span id="loopValue">6</span></label>
+            <p style="font-size: 10pt; font-weight: 200; margin-top: 5px; color: #666666;">최대 내부적 추론 횟수 (0 - 5)</p>
+            <input type="range" id="loop" name="loop" min="0" max="6" step="1" value="6" oninput="updateSliderValue('loop', 'loopValue')">
+        </div>
+    </div>
+    
+    <div class="main">
+        <div class="initial-view">
+            <img src="demo_logo.png" alt="LLM Logo" style="width: 500px;">
+        </div>
+        <div class="chatContainer" id="chatContainer" style="display: none;">
+        </div>
+        <div class="example-buttons">
+            <button onclick="setExample('정상 예제')" font-size: 12pt;>예제: 정상</button>
+            <button onclick="setExample('사기 예제')" font-size: 12pt;>예제: 사기</button>
+        </div>
+        <div class="input-view">
+            <textarea id="initialUserInput" rows={1} placeholder="로그를 입력하세요." oninput="resizeTextarea(this)" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { startChat(); event.preventDefault(); addMessage(); }"></textarea>
+        </div>
+    </div>
+</body>
+</html>
+
+
+<style>
+    body {
+        font-family: 'NanumSquare', sans-serif;
+        background-color: #ffffff;
+        color: #000000;
+        margin: 0;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+    .sidebar {
+        width: 15%;
+        min-width: 250px;
+        background-color: #f7f7f5;
+        padding: 20px;
+        border-right: solid 1px #e5e5e1;
+        overflow-y: auto;
+    }
+    .demo_description {
+        height: 14%;
+        border-bottom: solid 1px #e5e5e1;
+    }
+    .task_sel {
+        min-height: 100px;
+        border-bottom: solid 1px #e5e5e1;
+    }
+    .task_sel label {
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 12pt;
+        font-weight: 100;
+        color: #000000;
+    }
+    .task_sel select {
+        display: inline-block;
+        margin-top: 15px;
+        float: right;
+        width: 150px;
+        font-size: 10pt;
+        font-weight: 200;
+        border-radius: 5px;
+        background-color: #ffffff;
+    }
+    .agent_sel {
+        min-height: 100px;
+        border-bottom: solid 1px #e5e5e1;
+    }
+    .agent_sel label {
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 12pt;
+        font-weight: 100;
+        color: #000000;
+    }
+    .agent_sel select {
+        display: inline-block;
+        margin-top: 15px;
+        float: right;
+        width: 150px;
+        font-size: 10pt;
+        font-weight: 200;
+        border-radius: 5px;
+        background-color: #ffffff;
+    }
+    .temp_sel {
+        min-height: 120px;
+        border-bottom: solid 1px #e5e5e1;
+    }
+    .temp_sel label {
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 12pt;
+        font-weight: 100;
+        color: #000000;
+    }
+    .temp_sel input[type="range"] {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        border-radius: 5px;
+        background-color: #ffffff;
+    }
+    .trial_sel {
+        min-height: 100px;
+        border-bottom: solid 1px #e5e5e1;
+    }
+    .trial_sel label {
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 12pt;
+        font-weight: 100;
+        color: #000000;
+    }
+    .trial_sel input[type="range"] {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        border-radius: 5px;
+        background-color: #ffffff;
+    }
+    .loop_sel {
+        min-height: 100px;
+        border-bottom: solid 1px #e5e5e1;
+    }
+    .loop_sel label {
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 12pt;
+        font-weight: 100;
+        color: #000000;
+    }
+    .loop_sel input[type="range"] {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        border-radius: 5px;
+        background-color: #ffffff;
+    }   
+    
+    .main {
+        flex-grow: 1;
+        flex-direction: column;
+        display: flex;
+        align-items: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+    .initial-view {
+        width: 100%;
+        height: 85%;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .input-view {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .example-buttons {
+        margin-bottom: 10px;
+    }
+    .example-buttons button {
+        margin-right: 25px;
+        margin-left: 25px;
+        padding: 5px 10px;
+        width: 200px;
+        height: 30px;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    textarea {
+        flex: 1;
+        width: 50vw;
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px solid #ffffff;
+        resize: none;
+        overflow: auto;
+        min-height: 100px;
+        max-height: 200px;
+        background-color: #f0f0f0;
+        outline: none;
+        font-size: 16px;
+    }
+
+    .chatContainer {
+        width: 100%;
+        height: 75%;
+        bottom: 0;
+        display: flex;
+        overflow-y: auto;
+        background-color: #ffffff;
+        border-radius: 10px;
+    }
+    .inputs-view {
+        flex-grow: 1;
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .message {
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+    }
+    .message.user .messageContent {
+        background-color: #d0eaf7;
+        color: #000;
+        padding: 10px;
+        border-radius: 10px;
+        max-width: 70%;
+        margin-left: auto;
+        margin-right: 15%;
+    }
+    .message.llm .messageContent {
+        background-color: #ffffff;
+        color: #000;
+        padding: 10px;
+        border-radius: 10px;
+        max-width: 70%;
+        margin-left: 15%;
+    }
+    .loadingCircle {
+        width: 15px;
+        height: 15px;
+        border: 2px solid #ccc;
+        border-top: 2px solid #000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<script>
+    function updateTaskDescription() {
+        const task = document.getElementById('task').value;
+        const taskDescription = document.getElementById('taskDescription');
+        
+        switch (task) {
+            case 'BAF':
+                taskDescription.textContent = "BAF(Bank Account Fraud detection) task는 개인의 연 소득, 연령대, 주소 유효성, 고용 상태 등 30가지 특징을 기반으로 대상 계좌의 사기 여부를 탐지하는 task입니다.";
+                break;
+            case 'CCTFD':
+                taskDescription.textContent = "CCTFD(Credit Card Transaction Fraud Detection) task는 다양한 상인들과 이루어진 신용카드 거래 기록을 기반으로 사기 거래를 탐지하는 task입니다.";
+                break;
+            default:
+                taskDescription.textContent = "수행 가능한 Task로는 은행 계좌 사기 탐지(BAF, Bank Account Fraud detection)와 신용카드 거래 사기 탐지(CCTFD, Credit Card Transaction Fraud Detection)가 있습니다.";
+        }
+    }
+
+    function updateAgentDescription() {
+        const agent = document.getElementById('agent').value;
+        const agentDescription = document.getElementById('agentDescription');
+
+        switch (agent) {
+            case 'Ollama':
+                agentDescription.textContent = "Ollama는 로컬 환경에서 LLM을 손쉽게 실행할 수 있도록 지원하는 오픈소스 플랫폼입니다.\n여기서는 Meta의 Llama 3.1 8B 모델의 LoRA 학습 버전이 적용됩니다.";
+                break;
+            case 'vLLM':
+                agentDescription.textContent = "vLLM은 LLM의 추론과 서비스를 효율적으로 수행하기 위한 오픈소스 라이브러리입니다.\n여기서는 Meta의 Llama 3.1 8B 모델의 LoRA 학습 버전이 적용됩니다.";
+                break;
+            case 'OpenAI':
+                agentDescription.textContent = "OpenAI의 GPT-4 mini 모델이 적용됩니다.";
+                break;
+            default:
+                agentDescription.textContent = "지원되는 Toolkit으로는 Ollama, vLLM, OpenAI가 있습니다.";
+        }
+    }
+
+    function updateSliderValue(sliderId, valueId) {
+        const slider = document.getElementById(sliderId);
+        const valueDisplay = document.getElementById(valueId);
+        valueDisplay.textContent = slider.value;
+    }
+
+    function resizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+    
+    function startChat() {
+        const userInput = document.getElementById('initialUserInput').value;
+        if (!userInput.trim()) return;
+                
+        // Hide initial-view and show chatContainer
+        document.querySelector('.initial-view').style.display = 'none';
+        document.getElementById('chatContainer').style.display = 'inline';
+        
+        addMessage('user', userInput);
+        document.getElementById('initialUserInput').value = '';
+        mockLLMResponse(userInput);
+    }
+
+    function addMessage(sender, text, isLoading = false) {
+        const chatContainer = document.getElementById('chatContainer');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'messageContent';
+        messageContent.textContent = text;
+        messageDiv.appendChild(messageContent);
+
+        if (isLoading) {
+            const loadingCircle = document.createElement('div');
+            loadingCircle.className = 'loadingCircle';
+            messageDiv.appendChild(loadingCircle);
+        }
+        
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function mockLLMResponse(userInput) {
+        // Prevent further input until response is complete
+        const userInputArea = document.getElementById('initialUserInput');
+        userInputArea.disabled = true;
+
+        // Get parameters from sidebar
+        const temperature = document.getElementById('temperature').value;
+        const trial = document.getElementById('trial').value;
+        const loop = document.getElementById('loop').value;
+        const agent = document.getElementById('agent').value;
+
+        const mockResponseText = `Mock response for: "${userInput}" with temperature ${temperature}, trial ${trial}, loop ${loop}, using agent ${agent}.`;
+
+        // Add a message from LLM that is loading
+        addMessage('llm', '응답 생성 중...', true);
+
+        setTimeout(() => {
+            // Remove the loading indicator and update the message
+            const messages = document.getElementsByClassName('message llm');
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage) {
+                lastMessage.querySelector('.loadingCircle').remove();
+                lastMessage.querySelector('.messageContent').textContent = mockResponseText;
+            }
+            
+            // Re-enable the input area
+            userInputArea.disabled = false;
+            userInputArea.focus();
+        }, 3000); // Simulate response time with 3 seconds delay
+    }
+
+    function setExample(exampleText) {
+        document.getElementById('initialUserInput').value = exampleText;
+        resizeTextarea(document.getElementById('initialUserInput'));
+    }
+</script>
